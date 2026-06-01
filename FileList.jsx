@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import API from "../api";
+import API from "./api";
 import FileItem from "./FileItem";
 
 const FileList = () => {
@@ -7,7 +7,7 @@ const FileList = () => {
 
   const fetchFiles = async () => {
     try {
-      const { data } = await API.get("/files");
+      const { data } = await API.get("/api/files");
       setFiles(data);
     } catch (error) {
       console.error("Error fetching files", error);

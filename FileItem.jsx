@@ -1,14 +1,16 @@
 import React from "react";
-import API from "../api";
+import API from "./api";
 
 const FileItem = ({ file, onDelete }) => {
   const handleDownload = () => {
-    window.open(`http://localhost:5000/files/${file._id}`, "_blank");
+    // Download using the correct Express download endpoint and the unique savedName
+    window.open(`http://localhost:5000/download/${file.savedName}`, "_blank");
   };
 
   const handleDelete = async () => {
     try {
-      await API.delete(`/files/${file._id}`);
+      // Delete using the custom DELETE REST API and the unique savedName
+      await API.delete(`/api/files/${file.savedName}`);
       onDelete();
     } catch (error) {
       alert("Delete failed");
@@ -17,7 +19,7 @@ const FileItem = ({ file, onDelete }) => {
 
   return (
     <tr className="border-b">
-      <td className="p-2">{file.filename}</td>
+      <td className="p-2">{file.originalName}</td>
       <td className="p-2">{(file.size / 1024).toFixed(2)} KB</td>
       <td className="p-2">
         {new Date(file.uploadDate).toLocaleString()}

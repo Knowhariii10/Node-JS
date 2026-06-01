@@ -4,8 +4,16 @@ const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose'); // --- NEW DB ---
 const app = express();
-const PORT = 3000;
+const PORT = 5000;
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
+
+// Enable CORS middleware manually to support cross-origin requests from the React frontend
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  next();
+});
 
 // =======================================================
 // 0. DATABASE CONNECTION & MODEL
@@ -525,6 +533,33 @@ function fileManagerHTML(files) {
 // =======================================================
 // 3. ROUTES
 // =======================================================
+
+// --- GET FILES JSON API (For React Frontend) ---
+app.get('/api/files', async (req, res) => {
+  try {
+    const files = await File.find({}).sort({ uploadDate: 'desc' });
+    res.json(files);
+  } catch (err) {
+    console.error('Failed to fetch files:', err);
+    res.status(500).json({ error: 'Failed to fetch files' });
+  }
+});
+
+// --- DELETE FILE JSON API (For React Frontend) ---
+app.delete('/api/files/:filename', async (req, res) => {
+  const fileName = req.params.filename;
+  const filePath = path.join(UPLOAD_DIR, fileName);
+  try {
+    const deleteResult = await File.deleteOne({ savedName: fileName });
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    res.json({ message: 'File deleted successfully' });
+  } catch (err) {
+    console.error('Failed to delete file via API:', err);
+    res.status(500).json({ error: 'Failed to delete file' });
+  }
+});
 
 // --- NEW DATA ANALYTICS ENDPOINT (MongoDB Aggregation Pipelines) ---
 app.get('/api/analytics', async (req, res) => {

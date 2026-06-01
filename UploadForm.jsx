@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import API from "../api";
+import API from "./api";
 
 const UploadForm = ({ onUploadSuccess }) => {
   const [file, setFile] = useState(null);
@@ -14,7 +14,7 @@ const UploadForm = ({ onUploadSuccess }) => {
     if (!file) return alert("Please select a file!");
 
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("myFile", file);
 
     try {
       setUploading(true);
