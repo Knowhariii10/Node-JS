@@ -27,6 +27,10 @@ const fileSchema = new mongoose.Schema({
   uploadDate: { type: Date, default: Date.now }
 });
 
+// Index commonly searched/sorted fields to optimize database search queries (Data Best Practice)
+fileSchema.index({ mimeType: 1 });
+fileSchema.index({ uploadDate: -1 });
+
 // --- NEW DB ---
 // Create the Mongoose Model (the collection in the DB)
 const File = mongoose.model('File', fileSchema);
@@ -521,6 +525,74 @@ function fileManagerHTML(files) {
 // =======================================================
 // 3. ROUTES
 // =======================================================
+
+// --- NEW DATA ANALYTICS ENDPOINT (MongoDB Aggregation Pipelines) ---
+app.get('/api/analytics', async (req, res) => {
+  try {
+    // 1. Basic metrics (total file count & total size)
+    const stats = await File.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalFiles: { $sum: 1 },
+          totalSize: { $sum: '$size' }
+        }
+      }
+    ]);
+
+    const totalFiles = stats[0] ? stats[0].totalFiles : 0;
+    const totalSizeBytes = stats[0] ? stats[0].totalSize : 0;
+    const totalSizeMB = (totalSizeBytes / (1024 * 1024)).toFixed(2);
+
+    // 2. File size and count by MIME type (Distribution Analysis)
+    const mimeStats = await File.aggregate([
+      {
+        $group: {
+          _id: '$mimeType',
+          count: { $sum: 1 },
+          totalSize: { $sum: '$size' }
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+
+    const mimeBreakdown = mimeStats.map(item => ({
+      mimeType: item._id,
+      count: item.count,
+      sizeBytes: item.totalSize,
+      sizeMB: (item.totalSize / (1024 * 1024)).toFixed(2)
+    }));
+
+    // 3. Dynamic Upload Trends over the last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const trends = await File.aggregate([
+      { $match: { uploadDate: { $gte: thirtyDaysAgo } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$uploadDate" } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    res.json({
+      summary: {
+        totalFiles,
+        totalSizeBytes,
+        totalSizeMB
+      },
+      mimeBreakdown,
+      last30DaysTrends: trends
+    });
+
+  } catch (err) {
+    console.error('Failed to compute analytics:', err);
+    res.status(500).json({ error: 'Failed to compute file analytics.' });
+  }
+});
 
 // Default root route redirects to the manager page
 app.get('/', (req, res) => {

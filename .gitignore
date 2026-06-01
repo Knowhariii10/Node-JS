@@ -1,0 +1,21 @@
+# Node dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local uploads
+uploads/
+
+# IDE files
+.idea/
+.vscode/
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+
+# Environment variables
+.env
+.env.local
